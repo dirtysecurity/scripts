@@ -1,0 +1,51 @@
+Category,Description,Command
+Misc,Connecting to O365:,"$UserCredential = Get-Credential
+$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $UserCredential -Authentication  Basic -AllowRedirection
+Import-PSSession $Session
+Remove-PSSession $Session (Use when disconnecting)"
+Message Trace,Pull all of the Message Trace Logs from a sending email address,Get-MessageTrace -SenderAddress user@domain.com
+Message Trace,Pull all of the Message Trace Logs from a sending email address to a specific recipient and then format to where it’s easier to read,Get-MessageTrace -SenderAddress user@domain.com -RecipientAddress user2@domain.com | Get-MessageTraceDetail |Format-List
+Message Trace,Pull all of the Message Trace Logs from a recipient address within a specific time frame and format the formatted list to a CSV,Get-MessageTrace -RecipientAddress user@domain.com -StartDate 09/01/2018 -EndDate 9/21/2018 | FL > C:\Temp\MessageTrace.csv
+Message Trace,Pull all of the Message Trace logs from a sending address and export the columns to a CSV. I like this format better than the one listed above,Get-MessageTrace -RecipientAddress user@domain.com -StartDate 09/01/2018 -EndDate 9/21/2018 | Export-Csv C:\Temp\MessageTrace.csv
+Inbox Rules,Pull all of the rule ID’s from a user’s inbox,Get-MessageTrace -RecipientAddress user@domain.com -StartDate 09/01/2018 -EndDate 9/21/2018 | Export-Csv C:\Temp\MessageTrace2.csv
+Inbox Rules,Get the specific details from a user’s inbox rule ID,"Get-InboxRule -Identity ""user\ruleID"" | Format-List"
+Inbox Rules,Get a formatted list of all of the user’s inbox rules (this method is much quicker and easier than viewing them one by one),"Get-InboxRule –Mailbox <mailbox_user> | Select Name, Description | FL"
+Microsoft Safelinks,Pull all of the URL’s clicked by an individual email account,"Get-UrlTrace -RecipientAddress ""user@domain.com"" -StartDate ""06/01/2019"" -EndDate ""06/15/19"""
+Microsoft Safelinks,Pull all of the URL’s which include a specific domain,"Get-UrlTrace -UrlOrDomain ""udomain.com"" -StartDate ""06/01/2019"" -EndDate ""06/15/19"""
+Active Directory Account,Get all of the AD Groups for a single user account (simple list),(Get-ADuser -Identity UserName -Properties memberof).memberof | Get-ADGroup | Select-Object name | Sort-Object name
+Active Directory Account,Get all of the AD Groups for a single user account (detailed list),"Get-ADPrincipalGroupMembership -Identity ""UserName"""
+Active Directory Account,Get all of the AD Groups for All Users,"Get-ADUser -Filter * -Properties DisplayName,memberof | % {  $Name = $_.DisplayName $_.memberof | Get-ADGroup | Select @{N=""User"";E={$Name}},Name } | Export-Csv C:\temp\report.csv"
+Active Directory Account,Get AD Group Members,Get-ADGroupMember -Identity GroupName |Export-Csv C:\Temp\GroupMembers.csv
+Active Directory Account,Get password last set for all users,"Get-ADUser -filter * -properties PasswordLastSet, mail | sort-object PasswordLastSet | select-object Name, mail, PasswordLastSet | Export-csv -path c:\temp\user-passwords-expires.csv"
+Active Directory Account,"Get Password Expriation, last set, last bad attempt, etc","Get-ADUser -filter * -properties PasswordExpired, PasswordLastSet, PasswordNeverExpires, LastBadPaswordAttempt | ft Name, PasswordExpired, PasswordLastSet, PasswordNeverExpires > C:\temp\users.txt"
+Active Directory Account,Get Useful info on all accounts,"Get-ADUser -filter * -properties Name, Department, EmailAddress, LastBadPasswordAttempt, Title, Manager, MemberOf, passwordlastset | where { $_.enabled -eq ""true""} | sort-object passwordlastset, Department, Name, EmailAddress, LastBadPasswordAttempt, Title, Manager, MemberOf | Export-csv -path c:\temp\UserLookup.csv"
+AD Account Info,Get a list of a user's direct reports,"	$TargetUser = 'UserNAme'
+	$ExportCSV  = 'C:\Temp\DirectReports.csv'
+	
+	$Properties = @(
+	    'Name'
+	    'SamAccountName'
+	    'Description'
+	    'Office'
+	    'telephoneNumber'
+	    'EmailAddress'
+	    'DirectReports'
+	    )
+	
+	$ADUser = Get-ADUser -Identity $TargetUser -Properties $Properties
+	
+	$Results = foreach( $Report in $ADUser.DirectReports ){
+	    $PropHash = [ordered]@{}
+	
+	    foreach( $Prop in ( $Properties | Where-Object { $_ -ne 'DirectReports' } ) ){
+	        $PropHash.Add( $Prop, $ADUser.$Prop )
+	        }
+	
+	    $PropHash.Add( 'DirectReport', $Report )
+	
+	    [pscustomobject]$PropHash
+	    }
+	
+	$Results |
+    Export-Csv -Path $ExportCSV -NoTypeInformation"
+DNS Info,Get IP address from a list of hostnames,"Get-Content C:\Temp\hostnames.txt | Resolve-DNSName | Select Name,IPAddress | Export-Csv  C:\Temp\hostnames_ip.csv"
